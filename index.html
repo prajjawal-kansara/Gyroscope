@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: black;
+            color: white;
+        }
+        .ball {
+            position: absolute;
+            border-radius: 100%;
+            outline: #FFF dashed 20px;
+            background: radial-gradient(circle, #ffd100, #ffa500);
+            width: 150px;
+            height: 150px;
+            left: 45%;
+            top: 35%;
+            transition: left 0.2s ease, top 0.2s ease, transform 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="report_box"></div>
+    <div id="ball" class="ball"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let ball = document.querySelector('#ball');
+            let reportBox = document.querySelector('#report_box');
+
+            // Debug mode to simulate gyroscope readings
+            const debugMode = false;
+
+            if (debugMode) {
+                simulateGyroscope();
+            } else {
+                if ('Gyroscope' in window) {
+                    // Check for permissions if applicable
+                    if (navigator.permissions) {
+                        navigator.permissions.query({ name: 'gyroscope' }).then(permissionStatus => {
+                            if (permissionStatus.state === 'granted') {
+                                startGyroscope();
+                            } else if (permissionStatus.state === 'prompt') {
+                                requestGyroscopePermission().then(granted => {
+                                    if (granted) {
+                                        startGyroscope();
+                                    } else {
+                                        reportBox.innerHTML = 'Gyroscope permission denied.';
+                                    }
+                                });
+                            } else {
+                                reportBox.innerHTML = 'Gyroscope permission denied.';
+                            }
+                        }).catch(error => {
+                            console.error('Permissions API error:', error);
+                            startGyroscope(); // Try starting the gyroscope anyway
+                        });
+                    } else {
+                        startGyroscope(); // No Permissions API, try starting the gyroscope
+                    }
+                } else {
+                    reportBox.innerHTML = 'Gyroscope not supported on this device.';
+                }
+            }
+
+            function startGyroscope() {
+                let sensor = new Gyroscope({ frequency: 60 });
+                let x, y, z, report;
+
+                sensor.start();
+
+                sensor.onreading = () => {
+                    x = sensor.x * 0.1;
+                    y = sensor.y * 0.1;
+                    z = sensor.z * -0.33;
+
+                    report = `X-axis Angular Velocity: ${sensor.x.toFixed(2)}<br>`;
+                    report += `Y-axis Angular Velocity: ${sensor.y.toFixed(2)}<br>`;
+                    report += `Z-axis Angular Velocity: ${sensor.z.toFixed(2)}<br>`;
+                    report += `Ball current X = ${ball.offsetLeft}<br>`;
+                    report += `Ball current Y = ${ball.offsetTop}<br>`;
+                    report += `Ball current Rotation = ${z.toFixed(2)}deg<br>`;
+                    reportBox.innerHTML = report;
+
+                    ball.style.left = (ball.offsetLeft + x) + 'px';
+                    ball.style.top = (ball.offsetTop + y) + 'px';
+                    ball.style.transform = `rotate(${z}deg)`;
+                };
+
+                sensor.onerror = event => {
+                    console.error(event.error.name, event.error.message);
+                    reportBox.innerHTML = `Error: ${event.error.name} - ${event.error.message}`;
+                };
+            }
+
+            function requestGyroscopePermission() {
+                return new Promise((resolve) => {
+                    const result = confirm('This application needs access to the gyroscope. Do you allow it?');
+                    resolve(result);
+                });
+            }
+
+            function simulateGyroscope() {
+                let x = 0, y = 0, z = 0;
+                setInterval(() => {
+                    x += 0.1;
+                    y += 0.1;
+                    z += 0.1;
+
+                    let report = `X-axis Angular Velocity: ${x.toFixed(2)}<br>`;
+                    report += `Y-axis Angular Velocity: ${y.toFixed(2)}<br>`;
+                    report += `Z-axis Angular Velocity: ${z.toFixed(2)}<br>`;
+                    report += `Ball current X = ${ball.offsetLeft}<br>`;
+                    report += `Ball current Y = ${ball.offsetTop}<br>`;
+                    report += `Ball current Rotation = ${z.toFixed(2)}deg<br>`;
+                    reportBox.innerHTML = report;
+
+                    ball.style.left = (ball.offsetLeft + x) + 'px';
+                    ball.style.top = (ball.offsetTop + y) + 'px';
+                    ball.style.transform = `rotate(${z}deg)`;
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
